@@ -10,6 +10,16 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
+function setPageDateTime() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = pad(now.getMonth() + 1);
+  const dd = pad(now.getDate());
+  const hh = pad(now.getHours());
+
+  document.getElementById("page-datetime").textContent = `${yyyy}-${mm}-${dd} ${hh}:00`;
+}
+
 function setMeteoImage() {
   const now = new Date();
   const yyyy = now.getFullYear();
@@ -160,5 +170,6 @@ function renderPrecipChart(hourly) {
   });
 }
 
+setPageDateTime();
 setMeteoImage();
 loadCurrentWeather();
