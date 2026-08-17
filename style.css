@@ -124,8 +124,6 @@ h1 {
 }
 
 .precip-bar {
-  width: 100%;
-  max-width: 16px;
   background: #2a78d6;
   border-radius: 3px 3px 0 0;
 }

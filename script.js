@@ -71,7 +71,7 @@ async function loadCurrentWeather() {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
     `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m` +
-    `&hourly=precipitation_probability` +
+    `&hourly=precipitation_probability,precipitation` +
     `&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset` +
     `&timezone=Europe%2FWarsaw`;
 
@@ -119,6 +119,16 @@ function isNight(d, sunWindows) {
   return !sunWindows.some((w) => d >= w.sunrise && d < w.sunset);
 }
 
+// Hourly precip (mm) at or above this amount gets the widest bar; anything above clamps.
+const PRECIP_MM_CEILING = 2.0;
+const PRECIP_BAR_MIN_PX = 4;
+const PRECIP_BAR_MAX_PX = 18;
+
+function precipBarWidthPx(mm) {
+  const ratio = Math.min(mm / PRECIP_MM_CEILING, 1);
+  return PRECIP_BAR_MIN_PX + (PRECIP_BAR_MAX_PX - PRECIP_BAR_MIN_PX) * ratio;
+}
+
 function renderPrecipChart(hourly, daily) {
   const bars = document.getElementById("precip-bars");
   const labels = document.getElementById("precip-labels");
@@ -134,13 +144,14 @@ function renderPrecipChart(hourly, daily) {
 
   const hours = hourly.time.slice(startIdx, startIdx + 24);
   const probs = hourly.precipitation_probability.slice(startIdx, startIdx + 24);
+  const amounts = hourly.precipitation.slice(startIdx, startIdx + 24);
 
   bars.innerHTML = "";
   labels.innerHTML = "";
   tableBody.innerHTML = "";
 
-  const showTooltip = (bar, hourLabel, prob) => {
-    tooltip.textContent = `${hourLabel} · ${prob}%`;
+  const showTooltip = (bar, hourLabel, prob, mm) => {
+    tooltip.textContent = `${hourLabel} · ${prob}% · ${mm.toFixed(1)} mm`;
     tooltip.style.display = "block";
     tooltip.style.left = `${bar.offsetLeft + bar.offsetWidth / 2}px`;
     tooltip.style.bottom = `${bars.offsetHeight - bar.offsetTop + 6}px`;
@@ -151,6 +162,7 @@ function renderPrecipChart(hourly, daily) {
 
   hours.forEach((iso, i) => {
     const prob = probs[i];
+    const mm = amounts[i];
     const d = new Date(iso);
     const hourLabel = `${pad(d.getHours())}:00`;
 
@@ -162,15 +174,16 @@ function renderPrecipChart(hourly, daily) {
     const bar = document.createElement("div");
     bar.className = "precip-bar";
     bar.style.height = `${Math.max((prob / 100) * 100, 3)}%`;
+    bar.style.width = `${precipBarWidthPx(mm)}px`;
     bar.tabIndex = 0;
     bar.setAttribute("role", "img");
     bar.setAttribute(
       "aria-label",
-      `${hourLabel}: ${prob}% szansy opadow, ${night ? "noc" : "dzien"}`
+      `${hourLabel}: ${prob}% szansy opadow, ${mm.toFixed(1)} mm, ${night ? "noc" : "dzien"}`
     );
 
-    bar.addEventListener("pointerenter", () => showTooltip(bar, hourLabel, prob));
-    bar.addEventListener("focus", () => showTooltip(bar, hourLabel, prob));
+    bar.addEventListener("pointerenter", () => showTooltip(bar, hourLabel, prob, mm));
+    bar.addEventListener("focus", () => showTooltip(bar, hourLabel, prob, mm));
     bar.addEventListener("pointerleave", hideTooltip);
     bar.addEventListener("blur", hideTooltip);
 
@@ -185,10 +198,13 @@ function renderPrecipChart(hourly, daily) {
     const row = document.createElement("tr");
     const th = document.createElement("th");
     th.textContent = hourLabel;
-    const td = document.createElement("td");
-    td.textContent = `${prob}%`;
+    const tdProb = document.createElement("td");
+    tdProb.textContent = `${prob}%`;
+    const tdMm = document.createElement("td");
+    tdMm.textContent = `${mm.toFixed(1)} mm`;
     row.appendChild(th);
-    row.appendChild(td);
+    row.appendChild(tdProb);
+    row.appendChild(tdMm);
     tableBody.appendChild(row);
   });
 }
