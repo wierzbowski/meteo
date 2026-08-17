@@ -14,6 +14,18 @@
   <div class="card" id="owm-card">
     <h2>Aktualna pogoda</h2>
     <div id="owm-content" class="owm-content">Ladowanie...</div>
+
+    <h3>Szansa opadow (24h)</h3>
+    <div class="precip-chart" id="precip-chart">
+      <div class="precip-bars" id="precip-bars"></div>
+      <div class="precip-labels" id="precip-labels"></div>
+      <div class="precip-tooltip" id="precip-tooltip"></div>
+    </div>
+    <table class="sr-only" id="precip-table">
+      <caption>Szansa opadow w kolejnych godzinach</caption>
+      <thead><tr><th>Godzina</th><th>Szansa opadow</th></tr></thead>
+      <tbody id="precip-table-body"></tbody>
+    </table>
   </div>
 
   <div class="card">
