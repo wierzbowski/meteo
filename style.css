@@ -17,8 +17,14 @@ h1 {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: minmax(280px, 5fr) minmax(280px, 3fr);
   gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .card {
@@ -78,6 +84,21 @@ h1 {
 
 .precip-chart {
   position: relative;
+}
+
+.precip-days {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 0.15rem;
+}
+
+.precip-day {
+  flex: 1 1 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #666;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .precip-bars {

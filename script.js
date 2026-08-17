@@ -121,15 +121,18 @@ function isNight(d, sunWindows) {
 
 // Hourly precip (mm) at or above this amount gets the widest bar; anything above clamps.
 const PRECIP_MM_CEILING = 2.0;
-const PRECIP_BAR_MIN_PX = 4;
-const PRECIP_BAR_MAX_PX = 18;
+const PRECIP_BAR_MIN_PX = 3;
+const PRECIP_BAR_MAX_PX = 12;
 
 function precipBarWidthPx(mm) {
   const ratio = Math.min(mm / PRECIP_MM_CEILING, 1);
   return PRECIP_BAR_MIN_PX + (PRECIP_BAR_MAX_PX - PRECIP_BAR_MIN_PX) * ratio;
 }
 
+const DAY_ABBR = ["Nie", "Pon", "Wt", "Sr", "Czw", "Pt", "Sob"];
+
 function renderPrecipChart(hourly, daily) {
+  const days = document.getElementById("precip-days");
   const bars = document.getElementById("precip-bars");
   const labels = document.getElementById("precip-labels");
   const tableBody = document.getElementById("precip-table-body");
@@ -142,10 +145,11 @@ function renderPrecipChart(hourly, daily) {
   let startIdx = hourly.time.findIndex((t) => new Date(t) >= now);
   if (startIdx === -1) startIdx = 0;
 
-  const hours = hourly.time.slice(startIdx, startIdx + 24);
-  const probs = hourly.precipitation_probability.slice(startIdx, startIdx + 24);
-  const amounts = hourly.precipitation.slice(startIdx, startIdx + 24);
+  const hours = hourly.time.slice(startIdx, startIdx + 48);
+  const probs = hourly.precipitation_probability.slice(startIdx, startIdx + 48);
+  const amounts = hourly.precipitation.slice(startIdx, startIdx + 48);
 
+  days.innerHTML = "";
   bars.innerHTML = "";
   labels.innerHTML = "";
   tableBody.innerHTML = "";
@@ -192,8 +196,13 @@ function renderPrecipChart(hourly, daily) {
 
     const label = document.createElement("div");
     label.className = "precip-hour";
-    label.textContent = i % 3 === 0 ? hourLabel : "";
+    label.textContent = i % 4 === 0 ? hourLabel : "";
     labels.appendChild(label);
+
+    const dayCell = document.createElement("div");
+    dayCell.className = "precip-day";
+    dayCell.textContent = d.getHours() === 12 ? DAY_ABBR[d.getDay()] : "";
+    days.appendChild(dayCell);
 
     const row = document.createElement("tr");
     const th = document.createElement("th");
