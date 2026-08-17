@@ -72,7 +72,7 @@ async function loadCurrentWeather() {
     `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
     `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m` +
     `&hourly=precipitation_probability` +
-    `&daily=temperature_2m_max,temperature_2m_min` +
+    `&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset` +
     `&timezone=Europe%2FWarsaw`;
 
   try {
@@ -97,18 +97,36 @@ async function loadCurrentWeather() {
       </div>
     `;
 
-    renderPrecipChart(data.hourly);
+    renderPrecipChart(data.hourly, data.daily);
   } catch (err) {
     el.innerHTML = `<div class="owm-error">Nie udalo sie pobrac pogody (${err.message})</div>`;
   }
 }
 
-function renderPrecipChart(hourly) {
+function buildSunWindows(daily) {
+  const windows = [];
+  if (!daily || !daily.sunrise) return windows;
+  for (let i = 0; i < daily.time.length; i++) {
+    windows.push({
+      sunrise: new Date(daily.sunrise[i]),
+      sunset: new Date(daily.sunset[i]),
+    });
+  }
+  return windows;
+}
+
+function isNight(d, sunWindows) {
+  return !sunWindows.some((w) => d >= w.sunrise && d < w.sunset);
+}
+
+function renderPrecipChart(hourly, daily) {
   const bars = document.getElementById("precip-bars");
   const labels = document.getElementById("precip-labels");
   const tableBody = document.getElementById("precip-table-body");
   const tooltip = document.getElementById("precip-tooltip");
   if (!hourly) return;
+
+  const sunWindows = buildSunWindows(daily);
 
   const now = new Date();
   let startIdx = hourly.time.findIndex((t) => new Date(t) >= now);
@@ -136,15 +154,20 @@ function renderPrecipChart(hourly) {
     const d = new Date(iso);
     const hourLabel = `${pad(d.getHours())}:00`;
 
+    const night = isNight(d, sunWindows);
+
     const col = document.createElement("div");
-    col.className = "precip-col";
+    col.className = night ? "precip-col precip-col--night" : "precip-col";
 
     const bar = document.createElement("div");
     bar.className = "precip-bar";
     bar.style.height = `${Math.max((prob / 100) * 100, 3)}%`;
     bar.tabIndex = 0;
     bar.setAttribute("role", "img");
-    bar.setAttribute("aria-label", `${hourLabel}: ${prob}% szansy opadow`);
+    bar.setAttribute(
+      "aria-label",
+      `${hourLabel}: ${prob}% szansy opadow, ${night ? "noc" : "dzien"}`
+    );
 
     bar.addEventListener("pointerenter", () => showTooltip(bar, hourLabel, prob));
     bar.addEventListener("focus", () => showTooltip(bar, hourLabel, prob));

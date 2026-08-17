@@ -103,6 +103,26 @@ h1 {
   min-width: 0;
 }
 
+.precip-col--night {
+  background: #e3e6ea;
+}
+
+.precip-note {
+  font-size: 0.7rem;
+  color: #999;
+  margin-top: 0.35rem;
+}
+
+.precip-note .precip-note-swatch {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  background: #e3e6ea;
+  border-radius: 2px;
+  vertical-align: -0.05em;
+  margin-right: 0.25em;
+}
+
 .precip-bar {
   width: 100%;
   max-width: 16px;
