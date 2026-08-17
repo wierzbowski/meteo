@@ -142,7 +142,11 @@ function renderPrecipChart(hourly, daily) {
   const sunWindows = buildSunWindows(daily);
 
   const now = new Date();
-  let startIdx = hourly.time.findIndex((t) => new Date(t) >= now);
+  const startHour = Math.floor(now.getHours() / 4) * 4;
+  const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour);
+
+  let startIdx = hourly.time.findIndex((t) => new Date(t).getTime() === windowStart.getTime());
+  if (startIdx === -1) startIdx = hourly.time.findIndex((t) => new Date(t) >= windowStart);
   if (startIdx === -1) startIdx = 0;
 
   const hours = hourly.time.slice(startIdx, startIdx + 48);
