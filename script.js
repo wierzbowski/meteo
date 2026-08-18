@@ -20,15 +20,52 @@ function setPageDateTime() {
   document.getElementById("page-datetime").textContent = `${yyyy}-${mm}-${dd} ${hh}:00`;
 }
 
-function setMeteoImage() {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = pad(now.getMonth() + 1);
-  const dd = pad(now.getDate());
-  const fdate = `${yyyy}${mm}${dd}00`;
+// meteo.pl publishes a new model run at 00/06/12/18 local time, but a run isn't
+// available immediately - a not-yet-published fdate returns a tiny 10x130px
+// placeholder PNG (HTTP 200, no error) instead of the real ~540x780px chart. Rather
+// than guess a fixed publish delay, step back one run at a time until a real chart
+// (by pixel size) loads.
+const METEO_RUN_HOURS = [0, 6, 12, 18];
+const METEO_MAX_RUN_ATTEMPTS = 6; // up to 36h back - comfortably more than the observed delay
 
-  const url = `https://www.meteo.pl/um/metco/mgram_pict.php?ntype=0u&fdate=${fdate}&row=${METEO_ROW}&col=${METEO_COL}&lang=pl`;
-  document.getElementById("meteo-img").src = url;
+function meteoImageUrl(d) {
+  const fdate = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}`;
+  return `https://www.meteo.pl/um/metco/mgram_pict.php?ntype=0u&fdate=${fdate}&row=${METEO_ROW}&col=${METEO_COL}&lang=pl`;
+}
+
+function latestMeteoRun(now) {
+  const hour = METEO_RUN_HOURS.filter((h) => h <= now.getHours()).pop();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour);
+}
+
+function previousMeteoRun(runDate) {
+  return new Date(runDate.getTime() - 6 * 60 * 60 * 1000);
+}
+
+function formatRunLabel(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`;
+}
+
+function setMeteoImage() {
+  const img = document.getElementById("meteo-img");
+  const runLabel = document.getElementById("meteo-run-label");
+  let runDate = latestMeteoRun(new Date());
+  let attempt = 0;
+
+  const load = () => {
+    runLabel.textContent = formatRunLabel(runDate);
+    img.src = meteoImageUrl(runDate);
+  };
+
+  img.onload = () => {
+    if (img.naturalWidth < 100 && attempt < METEO_MAX_RUN_ATTEMPTS) {
+      attempt++;
+      runDate = previousMeteoRun(runDate);
+      load();
+    }
+  };
+
+  load();
 }
 
 const WEATHER_CODES = {
