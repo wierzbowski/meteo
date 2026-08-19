@@ -68,6 +68,17 @@ function setMeteoImage() {
   load();
 }
 
+// DWD's Bodenkarte (surface analysis + fixed lead-time forecasts) lives at a URL with
+// no date/run in it at all - FU Berlin overwrites the same file in place once a day.
+// A cache-bust query param (current date+hour) keeps the browser from serving a stale
+// copy across days without re-fetching on every single page load within the same hour.
+function setDwdImage() {
+  const now = new Date();
+  const bust = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}`;
+  document.getElementById("dwd-img").src =
+    `https://wind.met.fu-berlin.de/storage/wetterkarten/gme_tkb_na_p_036_000.gif?_=${bust}`;
+}
+
 const WEATHER_CODES = {
   0: ["Bezchmurnie", "☀️"],
   1: ["Prawie bezchmurnie", "🌤️"],
@@ -261,4 +272,5 @@ function renderPrecipChart(hourly, daily) {
 
 setPageDateTime();
 setMeteoImage();
+setDwdImage();
 loadCurrentWeather();
