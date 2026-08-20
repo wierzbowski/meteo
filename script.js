@@ -114,13 +114,57 @@ function describeCode(code) {
   return WEATHER_CODES[code] || ["Nieznane warunki", "❓"];
 }
 
+function renderDailyForecast(daily) {
+  const container = document.getElementById("daily-forecast");
+  if (!container || !daily) return;
+
+  container.innerHTML = "";
+
+  daily.time.forEach((dateStr, i) => {
+    const [desc, icon] = describeCode(daily.weather_code[i]);
+    const d = new Date(`${dateStr}T00:00:00`);
+    const label = i === 0 ? "Dzis" : DAY_ABBR[d.getDay()];
+
+    const cell = document.createElement("div");
+    cell.className = "daily-day";
+
+    const labelEl = document.createElement("div");
+    labelEl.className = "daily-day-label";
+    labelEl.textContent = label;
+
+    const iconEl = document.createElement("div");
+    iconEl.className = "daily-day-icon";
+    iconEl.textContent = icon;
+    iconEl.setAttribute("role", "img");
+    iconEl.setAttribute("aria-label", desc);
+    iconEl.title = desc;
+
+    const tempEl = document.createElement("div");
+    tempEl.className = "daily-day-temp";
+    const maxEl = document.createElement("span");
+    maxEl.className = "daily-day-temp-max";
+    maxEl.textContent = `${Math.round(daily.temperature_2m_max[i])}°`;
+    const minEl = document.createElement("span");
+    minEl.className = "daily-day-temp-min";
+    minEl.textContent = `${Math.round(daily.temperature_2m_min[i])}°`;
+    tempEl.appendChild(maxEl);
+    tempEl.appendChild(minEl);
+
+    cell.appendChild(labelEl);
+    cell.appendChild(iconEl);
+    cell.appendChild(tempEl);
+    container.appendChild(cell);
+  });
+}
+
 async function loadCurrentWeather() {
   const el = document.getElementById("owm-content");
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
     `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m` +
     `&hourly=precipitation_probability,precipitation` +
-    `&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset` +
+    `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset` +
+    `&forecast_days=8` +
     `&timezone=Europe%2FWarsaw`;
 
   try {
@@ -146,6 +190,7 @@ async function loadCurrentWeather() {
     `;
 
     renderPrecipChart(data.hourly, data.daily);
+    renderDailyForecast(data.daily);
   } catch (err) {
     el.innerHTML = `<div class="owm-error">Nie udalo sie pobrac pogody (${err.message})</div>`;
   }

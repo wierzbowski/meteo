@@ -180,6 +180,52 @@ h1 {
   pointer-events: none;
 }
 
+.daily-forecast {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.daily-day {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.15rem;
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.daily-day:first-child {
+  background: #f0f5fb;
+}
+
+.daily-day-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.daily-day-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.daily-day-temp {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.daily-day-temp-max {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.daily-day-temp-min {
+  color: #999;
+  margin-left: 0.3em;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
