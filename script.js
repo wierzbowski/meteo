@@ -197,9 +197,9 @@ function renderPrecipChart(hourly, daily) {
   if (startIdx === -1) startIdx = hourly.time.findIndex((t) => new Date(t) >= windowStart);
   if (startIdx === -1) startIdx = 0;
 
-  const hours = hourly.time.slice(startIdx, startIdx + 48);
-  const probs = hourly.precipitation_probability.slice(startIdx, startIdx + 48);
-  const amounts = hourly.precipitation.slice(startIdx, startIdx + 48);
+  const hours = hourly.time.slice(startIdx, startIdx + 60);
+  const probs = hourly.precipitation_probability.slice(startIdx, startIdx + 60);
+  const amounts = hourly.precipitation.slice(startIdx, startIdx + 60);
 
   days.innerHTML = "";
   bars.innerHTML = "";
