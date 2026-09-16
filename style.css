@@ -90,6 +90,22 @@ h1 {
   position: relative;
 }
 
+.precip-groups {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.precip-group {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .precip-groups {
+    flex-direction: column;
+  }
+}
+
 .precip-days {
   display: flex;
   gap: 2px;

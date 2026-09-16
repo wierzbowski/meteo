@@ -217,6 +217,12 @@ const PRECIP_MM_CEILING = 2.0;
 const PRECIP_BAR_MIN_PX = 3;
 const PRECIP_BAR_MAX_PX = 12;
 
+// Total forecast horizon shown, split into side-by-side groups of this many hours each.
+// On wide screens the groups sit in one continuous row (bars end up half as wide as a
+// single 60h row would be); on narrow/portrait screens they stack into two full rows.
+const PRECIP_TOTAL_HOURS = 120;
+const PRECIP_HOURS_PER_GROUP = 60;
+
 function precipBarWidthPx(mm) {
   const ratio = Math.min(mm / PRECIP_MM_CEILING, 1);
   return PRECIP_BAR_MIN_PX + (PRECIP_BAR_MAX_PX - PRECIP_BAR_MIN_PX) * ratio;
@@ -225,9 +231,8 @@ function precipBarWidthPx(mm) {
 const DAY_ABBR = ["Nie", "Pon", "Wt", "Sr", "Czw", "Pt", "Sob"];
 
 function renderPrecipChart(hourly, daily) {
-  const days = document.getElementById("precip-days");
-  const bars = document.getElementById("precip-bars");
-  const labels = document.getElementById("precip-labels");
+  const chart = document.getElementById("precip-chart");
+  const groupsContainer = document.getElementById("precip-groups");
   const tableBody = document.getElementById("precip-table-body");
   const tooltip = document.getElementById("precip-tooltip");
   if (!hourly) return;
@@ -242,77 +247,98 @@ function renderPrecipChart(hourly, daily) {
   if (startIdx === -1) startIdx = hourly.time.findIndex((t) => new Date(t) >= windowStart);
   if (startIdx === -1) startIdx = 0;
 
-  const hours = hourly.time.slice(startIdx, startIdx + 60);
-  const probs = hourly.precipitation_probability.slice(startIdx, startIdx + 60);
-  const amounts = hourly.precipitation.slice(startIdx, startIdx + 60);
+  const hours = hourly.time.slice(startIdx, startIdx + PRECIP_TOTAL_HOURS);
+  const probs = hourly.precipitation_probability.slice(startIdx, startIdx + PRECIP_TOTAL_HOURS);
+  const amounts = hourly.precipitation.slice(startIdx, startIdx + PRECIP_TOTAL_HOURS);
 
-  days.innerHTML = "";
-  bars.innerHTML = "";
-  labels.innerHTML = "";
+  groupsContainer.innerHTML = "";
   tableBody.innerHTML = "";
 
+  // Positioned via the bar's and chart's viewport rects so it stays correct
+  // regardless of which group row the hovered bar sits in.
   const showTooltip = (bar, hourLabel, prob, mm) => {
+    const chartRect = chart.getBoundingClientRect();
+    const barRect = bar.getBoundingClientRect();
     tooltip.textContent = `${hourLabel} · ${prob}% · ${mm.toFixed(1)} mm`;
     tooltip.style.display = "block";
-    tooltip.style.left = `${bar.offsetLeft + bar.offsetWidth / 2}px`;
-    tooltip.style.bottom = `${bars.offsetHeight - bar.offsetTop + 6}px`;
+    tooltip.style.left = `${barRect.left - chartRect.left + barRect.width / 2}px`;
+    tooltip.style.bottom = `${chartRect.bottom - barRect.top + 6}px`;
   };
   const hideTooltip = () => {
     tooltip.style.display = "none";
   };
 
-  hours.forEach((iso, i) => {
-    const prob = probs[i];
-    const mm = amounts[i];
-    const d = new Date(iso);
-    const hourLabel = `${pad(d.getHours())}:00`;
+  for (let groupStart = 0; groupStart < hours.length; groupStart += PRECIP_HOURS_PER_GROUP) {
+    const groupEnd = Math.min(groupStart + PRECIP_HOURS_PER_GROUP, hours.length);
 
-    const night = isNight(d, sunWindows);
+    const group = document.createElement("div");
+    group.className = "precip-group";
+    const days = document.createElement("div");
+    days.className = "precip-days";
+    const bars = document.createElement("div");
+    bars.className = "precip-bars";
+    const labels = document.createElement("div");
+    labels.className = "precip-labels";
 
-    const col = document.createElement("div");
-    col.className = night ? "precip-col precip-col--night" : "precip-col";
+    for (let i = groupStart; i < groupEnd; i++) {
+      const iso = hours[i];
+      const prob = probs[i];
+      const mm = amounts[i];
+      const d = new Date(iso);
+      const hourLabel = `${pad(d.getHours())}:00`;
 
-    const bar = document.createElement("div");
-    bar.className = "precip-bar";
-    bar.style.height = `${Math.max((prob / 100) * 100, 3)}%`;
-    bar.style.width = `${precipBarWidthPx(mm)}px`;
-    bar.tabIndex = 0;
-    bar.setAttribute("role", "img");
-    bar.setAttribute(
-      "aria-label",
-      `${hourLabel}: ${prob}% szansy opadow, ${mm.toFixed(1)} mm, ${night ? "noc" : "dzien"}`
-    );
+      const night = isNight(d, sunWindows);
 
-    bar.addEventListener("pointerenter", () => showTooltip(bar, hourLabel, prob, mm));
-    bar.addEventListener("focus", () => showTooltip(bar, hourLabel, prob, mm));
-    bar.addEventListener("pointerleave", hideTooltip);
-    bar.addEventListener("blur", hideTooltip);
+      const col = document.createElement("div");
+      col.className = night ? "precip-col precip-col--night" : "precip-col";
 
-    col.appendChild(bar);
-    bars.appendChild(col);
+      const bar = document.createElement("div");
+      bar.className = "precip-bar";
+      bar.style.height = `${Math.max((prob / 100) * 100, 3)}%`;
+      bar.style.width = `${precipBarWidthPx(mm)}px`;
+      bar.tabIndex = 0;
+      bar.setAttribute("role", "img");
+      bar.setAttribute(
+        "aria-label",
+        `${hourLabel}: ${prob}% szansy opadow, ${mm.toFixed(1)} mm, ${night ? "noc" : "dzien"}`
+      );
 
-    const label = document.createElement("div");
-    label.className = "precip-hour";
-    label.textContent = i % 4 === 0 ? hourLabel : "";
-    labels.appendChild(label);
+      bar.addEventListener("pointerenter", () => showTooltip(bar, hourLabel, prob, mm));
+      bar.addEventListener("focus", () => showTooltip(bar, hourLabel, prob, mm));
+      bar.addEventListener("pointerleave", hideTooltip);
+      bar.addEventListener("blur", hideTooltip);
 
-    const dayCell = document.createElement("div");
-    dayCell.className = "precip-day";
-    dayCell.textContent = d.getHours() === 12 ? DAY_ABBR[d.getDay()] : "";
-    days.appendChild(dayCell);
+      col.appendChild(bar);
+      bars.appendChild(col);
 
-    const row = document.createElement("tr");
-    const th = document.createElement("th");
-    th.textContent = hourLabel;
-    const tdProb = document.createElement("td");
-    tdProb.textContent = `${prob}%`;
-    const tdMm = document.createElement("td");
-    tdMm.textContent = `${mm.toFixed(1)} mm`;
-    row.appendChild(th);
-    row.appendChild(tdProb);
-    row.appendChild(tdMm);
-    tableBody.appendChild(row);
-  });
+      const label = document.createElement("div");
+      label.className = "precip-hour";
+      label.textContent = i % 4 === 0 ? hourLabel : "";
+      labels.appendChild(label);
+
+      const dayCell = document.createElement("div");
+      dayCell.className = "precip-day";
+      dayCell.textContent = d.getHours() === 12 ? DAY_ABBR[d.getDay()] : "";
+      days.appendChild(dayCell);
+
+      const row = document.createElement("tr");
+      const th = document.createElement("th");
+      th.textContent = hourLabel;
+      const tdProb = document.createElement("td");
+      tdProb.textContent = `${prob}%`;
+      const tdMm = document.createElement("td");
+      tdMm.textContent = `${mm.toFixed(1)} mm`;
+      row.appendChild(th);
+      row.appendChild(tdProb);
+      row.appendChild(tdMm);
+      tableBody.appendChild(row);
+    }
+
+    group.appendChild(days);
+    group.appendChild(bars);
+    group.appendChild(labels);
+    groupsContainer.appendChild(group);
+  }
 }
 
 setPageDateTime();
